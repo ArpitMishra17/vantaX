@@ -6,6 +6,7 @@ import path from 'path';
 import { fileURLToPath } from 'url';
 import fs from 'fs';
 import { ensureDatabaseSchema } from './db';
+import adminRouter from './routes/admin';
 import candidatesRouter from './routes/candidates';
 import companiesRouter from './routes/companies';
 import juryRouter from './routes/jury';
@@ -25,6 +26,7 @@ app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 app.use('/api/candidates', candidatesRouter);
 app.use('/api/companies', companiesRouter);
 app.use('/api/jury', juryRouter);
+app.use('/api/admin', adminRouter);
 
 // Cashfree payment stubs
 app.post('/api/payment/create-order', async (_req, res) => {
