@@ -1,13 +1,34 @@
-import { useState, useRef } from 'react';
-import { Link } from 'react-router-dom';
-import { Upload, CheckCircle2 } from 'lucide-react';
+import { useState, useRef, useEffect } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
+import { Upload, CheckCircle2, Loader2 } from 'lucide-react';
 import FadeInOnScroll from '../../components/motion/FadeInOnScroll';
 import FormField from '../../components/form/FormField';
 import FormSection from '../../components/form/FormSection';
 import SubmitButton from '../../components/form/SubmitButton';
-import { submitCandidate } from '../../lib/api';
+import { submitCandidate, createPaymentOrder, verifyPayment } from '../../lib/api';
+
+declare global {
+  interface Window {
+    Cashfree: any;
+  }
+}
+
+function loadCashfreeSDK(): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (window.Cashfree) {
+      resolve();
+      return;
+    }
+    const script = document.createElement('script');
+    script.src = 'https://sdk.cashfree.com/js/v3/cashfree.js';
+    script.onload = () => resolve();
+    script.onerror = () => reject(new Error('Failed to load Cashfree SDK'));
+    document.head.appendChild(script);
+  });
+}
 
 export default function RegistrationForm() {
+  const [searchParams, setSearchParams] = useSearchParams();
   const [form, setForm] = useState({
     fullName: '',
     email: '',
@@ -20,12 +41,56 @@ export default function RegistrationForm() {
   });
   const [resume, setResume] = useState<File | null>(null);
   const [loading, setLoading] = useState(false);
+  const [verifying, setVerifying] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [paymentPending, setPaymentPending] = useState(false);
   const [error, setError] = useState('');
   const fileRef = useRef<HTMLInputElement>(null);
 
   const set = (key: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
     setForm({ ...form, [key]: e.target.value });
+
+  // Handle return from Cashfree checkout
+  useEffect(() => {
+    const paymentParam = searchParams.get('payment');
+    const orderId = searchParams.get('order_id');
+
+    if (paymentParam === 'success' && orderId) {
+      setVerifying(true);
+      // Clear params from URL
+      setSearchParams({}, { replace: true });
+
+      let attempts = 0;
+      const maxAttempts = 10;
+      const interval = setInterval(async () => {
+        attempts++;
+        try {
+          const result = await verifyPayment(orderId);
+          if (result.paymentStatus === 'completed') {
+            clearInterval(interval);
+            setVerifying(false);
+            setSuccess(true);
+          } else if (result.paymentStatus === 'failed') {
+            clearInterval(interval);
+            setVerifying(false);
+            setError('Payment failed. Please try registering again.');
+          } else if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            setVerifying(false);
+            setPaymentPending(true);
+          }
+        } catch {
+          if (attempts >= maxAttempts) {
+            clearInterval(interval);
+            setVerifying(false);
+            setPaymentPending(true);
+          }
+        }
+      }, 2000);
+
+      return () => clearInterval(interval);
+    }
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -45,14 +110,64 @@ export default function RegistrationForm() {
       const fd = new FormData();
       Object.entries(form).forEach(([k, v]) => { if (v) fd.append(k, v); });
       fd.append('resume', resume);
-      await submitCandidate(fd);
-      setSuccess(true);
+      const result = await submitCandidate(fd);
+
+      if (!result.paymentRequired) {
+        // Payment disabled — registration complete
+        setSuccess(true);
+        return;
+      }
+
+      // Payment enabled — create Cashfree order and open checkout
+      const order = await createPaymentOrder(result.id);
+      await loadCashfreeSDK();
+
+      const cashfree = window.Cashfree({ mode: order.cfEnvironment || 'production' });
+      await cashfree.checkout({
+        paymentSessionId: order.paymentSessionId,
+        redirectTarget: '_self',
+      });
     } catch (err: any) {
       setError(err.message || 'Something went wrong');
     } finally {
       setLoading(false);
     }
   };
+
+  if (verifying) {
+    return (
+      <section id="register" className="py-20 px-4 max-w-2xl mx-auto">
+        <FadeInOnScroll>
+          <div className="bg-card border border-border rounded-2xl p-12 text-center">
+            <Loader2 size={48} className="text-primary animate-spin mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Verifying Payment...</h2>
+            <p className="text-text-secondary">
+              Please wait while we confirm your payment. This may take a few seconds.
+            </p>
+          </div>
+        </FadeInOnScroll>
+      </section>
+    );
+  }
+
+  if (paymentPending) {
+    return (
+      <section id="register" className="py-20 px-4 max-w-2xl mx-auto">
+        <FadeInOnScroll>
+          <div className="bg-card border border-border rounded-2xl p-12 text-center">
+            <Loader2 size={48} className="text-gold-400 mx-auto mb-4" />
+            <h2 className="text-2xl font-bold mb-2">Payment Processing</h2>
+            <p className="text-text-secondary mb-4">
+              Your payment is being processed. This can take a minute. You'll receive a confirmation email once it's complete.
+            </p>
+            <p className="text-text-muted text-sm">
+              If you don't receive an email within 15 minutes, contact us at hello@vantahire.com.
+            </p>
+          </div>
+        </FadeInOnScroll>
+      </section>
+    );
+  }
 
   if (success) {
     return (
@@ -62,7 +177,7 @@ export default function RegistrationForm() {
             <CheckCircle2 size={56} className="text-success mx-auto mb-4" />
             <h2 className="text-2xl font-bold mb-2">Registration Complete!</h2>
             <p className="text-text-secondary mb-6">
-              Thank you, {form.fullName}. We've received your application. Check your email for confirmation. We'll be in touch as VantaX 2026 approaches.
+              Thank you{form.fullName ? `, ${form.fullName}` : ''}. We've received your application. Check your email for confirmation. We'll be in touch as VantaX 2026 approaches.
             </p>
             <div className="flex flex-wrap gap-4 justify-center">
               <Link to="/what-is-vantax" className="text-sm text-gold-400 hover:text-gold-500 transition-colors">Learn more about VantaX &rarr;</Link>
@@ -79,7 +194,7 @@ export default function RegistrationForm() {
         <div className="bg-card border border-border rounded-2xl p-8 sm:p-10">
           <h2 className="text-2xl font-bold mb-1">Apply for VantaX 2026</h2>
           <p className="text-text-secondary text-sm mb-2">Seats capped per problem. Once full, registration closes.</p>
-          <p className="text-gold-400 text-sm font-semibold mb-8">₹199 — Access all 3 challenges + structured hiring exposure</p>
+          <p className="text-gold-400 text-sm font-semibold mb-8">₹199 + GST — Access all 3 challenges + structured hiring exposure</p>
 
           <form onSubmit={handleSubmit} className="space-y-8">
             <FormSection title="Basic Information">
@@ -133,7 +248,7 @@ export default function RegistrationForm() {
               <div className="bg-pink/10 border border-pink/30 rounded-lg p-3 text-sm text-pink">{error}</div>
             )}
 
-            <SubmitButton loading={loading}>Apply for VantaX 2026</SubmitButton>
+            <SubmitButton loading={loading}>Register & Pay ₹235</SubmitButton>
           </form>
         </div>
       </FadeInOnScroll>

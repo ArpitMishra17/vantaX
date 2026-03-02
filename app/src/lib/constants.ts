@@ -61,6 +61,7 @@ export const RUBRIC_DATA = [
 
 export const TIMELINE_DATA = [
   { date: '14 April 2026', title: 'Jury & Partner Announcement', description: 'Jury panel, partnerships, and sponsors revealed' },
+  { date: '9 March 2026', title: 'Registration Opens', description: 'Early registration begins — seats capped per problem' },
   { date: '23 April 2026', title: 'VantaX 2026 Launches', description: 'Event goes live — registration closes at launch' },
   { date: '25 April 2026', title: 'Challenge 1 — Submissions Open', description: '2-day window · 2-hour timed assessment' },
   { date: '27 April 2026', title: 'Challenge 2 — Submissions Open', description: '2-day window · 2-hour timed assessment' },
@@ -238,7 +239,7 @@ export const FAQ_DATA = [
   },
   {
     question: 'Is it free or paid?',
-    answer: '₹199 to register. This gives you access to all 3 challenges, structured hiring exposure, and a direct path to participating companies.',
+    answer: '₹199 + GST to register. This gives you access to all 3 challenges, structured hiring exposure, and a direct path to participating companies.',
   },
 ];
 

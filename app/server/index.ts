@@ -10,6 +10,7 @@ import adminRouter from './routes/admin';
 import candidatesRouter from './routes/candidates';
 import companiesRouter from './routes/companies';
 import juryRouter from './routes/jury';
+import paymentRouter from './routes/payment';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const app = express();
@@ -20,30 +21,19 @@ app.use(helmet({
   crossOriginEmbedderPolicy: false,
 }));
 app.use(cors());
-app.use(express.json());
+// Capture raw body for webhook signature verification
+app.use(express.json({
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf.toString();
+  },
+}));
 app.use('/uploads', express.static(path.join(__dirname, '../public/uploads')));
 
 app.use('/api/candidates', candidatesRouter);
 app.use('/api/companies', companiesRouter);
 app.use('/api/jury', juryRouter);
 app.use('/api/admin', adminRouter);
-
-// Cashfree payment stubs
-app.post('/api/payment/create-order', async (_req, res) => {
-  if (process.env.ENABLE_PAYMENT !== 'true') {
-    return res.status(503).json({ error: 'Payment not enabled' });
-  }
-  // TODO: Integrate Cashfree SDK
-  res.json({ message: 'Cashfree create-order stub', orderId: null });
-});
-
-app.post('/api/payment/verify', async (_req, res) => {
-  if (process.env.ENABLE_PAYMENT !== 'true') {
-    return res.status(503).json({ error: 'Payment not enabled' });
-  }
-  // TODO: Verify Cashfree payment signature
-  res.json({ message: 'Cashfree verify stub', verified: false });
-});
+app.use('/api/payment', paymentRouter);
 
 // Serve Vite build in production
 const distPath = path.join(__dirname, '../dist');

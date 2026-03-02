@@ -23,7 +23,7 @@ export default function CTA() {
           Build. Submit. Get seen.
         </p>
         <p className="text-sm text-text-muted mb-3">
-          3 challenges. 2 hours each. ₹199 for the entire event.
+          3 challenges. 2 hours each. ₹199 + GST for the entire event.
         </p>
         <p className="text-sm text-gold-400 font-medium mb-8">
           Top performers earn the VantaX Verified Builder Badge.

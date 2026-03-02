@@ -51,7 +51,7 @@ export default function Hero() {
         transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
         className="relative z-10"
       >
-        <Badge pulse>Event Launches 23 April 2026 &middot; Seats Capped Per Problem</Badge>
+        <Badge pulse>Registration Opens 9 March 2026 &middot; Seats Capped Per Problem</Badge>
 
         <h1 className="mt-8 text-5xl sm:text-6xl md:text-7xl lg:text-[80px] font-extrabold leading-[1.05]">
           <GradientText className="glow-text-gold">3 Challenges.</GradientText>
@@ -75,7 +75,7 @@ export default function Hero() {
           transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
           className="mt-3 text-sm text-gold-400 font-medium tracking-wide"
         >
-          ₹199 &middot; All 3 Challenges &middot; Direct Hiring Pipeline
+          ₹199 + GST &middot; All 3 Challenges &middot; Direct Hiring Pipeline
         </motion.p>
 
         <motion.div

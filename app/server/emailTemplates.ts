@@ -84,6 +84,52 @@ export function companyConfirmationEmail(data: Record<string, any>): { subject: 
   };
 }
 
+export function candidateConfirmationEmail(data: Record<string, any>, { paid = true }: { paid?: boolean } = {}): { subject: string; html: string } {
+  const paymentLine = paid
+    ? `We've received your payment of ₹199 + GST and your application is all set.`
+    : `Your application is all set.`;
+  const body = `
+    <div class="card">
+      <p style="color:#A1A1AA;">Hi ${escapeHtml(data.fullName)},</p>
+      <p style="color:#fff;">Your registration for <span class="primary">VantaX 2026</span> is confirmed!</p>
+      <p style="color:#A1A1AA;">${paymentLine}</p>
+      <p style="color:#fff;margin-top:16px;font-weight:600;">What happens next?</p>
+      <ul style="color:#A1A1AA;padding-left:20px;">
+        <li>You'll receive challenge details before the assessment window opens</li>
+        <li>All 3 problem statements will be available on the platform</li>
+        <li>Top performers get direct hiring exposure with partner companies</li>
+      </ul>
+      <p style="color:#A1A1AA;margin-top:16px;">If you have questions, reply to this email or reach out at hello@vantahire.com.</p>
+    </div>`;
+
+  return {
+    subject: 'VantaX 2026 — Registration Confirmed',
+    html: wrap('Registration Confirmed', 'VantaX 2026 — You\'re In!', body),
+  };
+}
+
+export function candidateNotificationEmail(data: Record<string, any>): { subject: string; html: string } {
+  const body = `
+    <div class="card">
+      <h3 style="color:#A78BFA;margin-top:0;">Candidate Details</h3>
+      ${field('Name', data.fullName)}
+      ${field('Email', data.email)}
+      ${field('Phone', data.phone)}
+      ${field('LinkedIn', data.linkedinUrl)}
+      ${field('College', data.college)}
+      ${field('Graduation Year', data.graduationYear)}
+      ${field('Degree / Branch', data.degreeBranch)}
+      ${field('Referral Source', data.referralSource)}
+      ${field('Payment Status', data.paymentStatus)}
+      ${field('Payment ID', data.paymentId)}
+    </div>`;
+
+  return {
+    subject: `[VantaX] New Candidate Registration: ${data.fullName}`,
+    html: wrap('VantaX Candidate Registration', 'New candidate registered', body),
+  };
+}
+
 export function juryNotificationEmail(data: Record<string, any>): { subject: string; html: string } {
   const body = `
     <div class="card">
